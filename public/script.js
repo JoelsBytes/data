@@ -114,7 +114,7 @@ document.getElementById('customer-form').addEventListener('submit', function (e)
     country,
   };
 
-  fetch('/save-customer', {
+  fetch('./save-customer', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -138,7 +138,7 @@ document.getElementById('customer-form').addEventListener('submit', function (e)
 
 // Load and display the last 3 saved contacts
 function loadContacts() {
-  fetch('/get-contacts')
+  fetch('./get-contacts')
     .then(response => response.json())
     .then(data => {
       const savedContactsDiv = document.getElementById('saved-contacts');
@@ -171,7 +171,7 @@ function loadContacts() {
 
 // Delete contact
 function deleteContact(index, name, phone) {
-  fetch('/delete-contact', {
+  fetch('./delete-contact', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
