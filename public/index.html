@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Customer Data Form</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Enter Customer Data</h1>
+      <form id="customer-form">
+        <label for="name">Full Name:</label>
+        <input type="text" id="name" name="name" required />
+
+        <label for="phone">Phone Number:</label>
+        <input type="text" id="phone" name="phone" required />
+
+        <label for="country">Country:</label>
+        <select id="country" name="country" required>
+          <option value="Ghana">Ghana</option>
+          <option value="Togo">Togo</option>
+          <option value="Benin">Benin</option>
+          <option value="Ivory Coast">Ivory Coast</option>
+          <option value="Burkina Faso">Burkina Faso</option>
+          <option value="Senegal">Senegal</option>
+          <option value="Mali">Mali</option>
+        </select>
+
+        <button type="submit">Submit</button>
+      </form>
+
+      <div id="status"></div>
+
+      <!-- Display saved contacts by default -->
+      <div id="saved-contacts"></div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
