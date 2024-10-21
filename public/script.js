@@ -100,7 +100,7 @@ document.getElementById('customer-form').addEventListener('submit', function (e)
   const country = document.getElementById('country').value;
   const name = document.getElementById('name').value.trim();
   let phone = document.getElementById('phone').value.trim();
-  phone = validatePhoneNumber(country, phone); // Keep your validation logic here
+  phone = validatePhoneNumber(country, phone);
 
   if (!phone) {
     document.getElementById('status').textContent = `Invalid Phone Number for ${country}`;
@@ -114,8 +114,7 @@ document.getElementById('customer-form').addEventListener('submit', function (e)
     country,
   };
 
-  // Update the endpoint to point to the serverless function
-  fetch('/api/save-customer', {
+  fetch('./save-customer', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -139,8 +138,7 @@ document.getElementById('customer-form').addEventListener('submit', function (e)
 
 // Load and display the last 3 saved contacts
 function loadContacts() {
-  // Update the endpoint to point to the serverless function
-  fetch('/api/get-contacts')
+  fetch('./get-contacts')
     .then(response => response.json())
     .then(data => {
       const savedContactsDiv = document.getElementById('saved-contacts');
@@ -173,8 +171,7 @@ function loadContacts() {
 
 // Delete contact
 function deleteContact(index, name, phone) {
-  // Update the endpoint to point to the serverless function
-  fetch('/api/delete-contact', {
+  fetch('./delete-contact', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
