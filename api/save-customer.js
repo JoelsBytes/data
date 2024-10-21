@@ -1,19 +1,18 @@
-const fs = require('fs');
-const path = require('path');
+const AWS = require('aws-sdk');
 const XLSX = require('xlsx');
+const { Readable } = require('stream');
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method not allowed' });
-  }
+// Initialize the S3 client
+const s3 = new AWS.S3({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: 'your-region', // e.g., 'us-west-1'
+});
 
-  const { name, phone, country } = req.body;
+const bucketName = 'your-bucket-name';
+const fileName = 'CustomerData.xlsx';
 
-  // Validate input
-  if (!name || !phone || !country) {
-    return res.status(400).json({ message: 'All fields are required' });
-  }
-
+function getCountryIndex(country) {
   const countryMap = {
     Ghana: 'GH',
     Togo: 'TG',
@@ -23,33 +22,71 @@ export default async function handler(req, res) {
     Senegal: 'SN',
     Mali: 'ML',
   };
+  return countryMap[country] || '';
+}
 
-  const countryIndex = countryMap[country] || '';
+async function uploadToS3(buffer, fileName) {
+  const params = {
+    Bucket: bucketName,
+    Key: fileName,
+    Body: buffer,
+    ContentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  };
+  await s3.upload(params).promise();
+}
 
-  const filePath = path.join(process.cwd(), 'public', 'CustomerData.xlsx');
+async function downloadFromS3(fileName) {
+  const params = {
+    Bucket: bucketName,
+    Key: fileName,
+  };
+  const data = await s3.getObject(params).promise();
+  return data.Body;
+}
 
-  let rows = [];
+function generateExcelBuffer(newData, existingRows) {
+  const rows = existingRows || [['Name', 'Phone Number']];
 
-  // Check if the Excel file already exists
-  if (fs.existsSync(filePath)) {
-    const workbook = XLSX.readFile(filePath);
-    const worksheet = workbook.Sheets['Customers'];
-    const existingData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-    rows = existingData.length > 1 ? existingData.slice(1) : [];
-  } else {
-    rows.push(['Name', 'Phone Number']); // Add headers if file does not exist
-  }
+  newData.forEach(entry => {
+    const countryIndex = getCountryIndex(entry.country);
+    rows.push([`${entry.name.toUpperCase()} ${countryIndex}`, entry.phone]);
+  });
 
-  // Append new data
-  rows.push([`${name.toUpperCase()} ${countryIndex}`, phone]);
-
-  // Create worksheet and workbook
-  const worksheet = XLSX.utils.aoa_to_sheet([['Name', 'Phone Number'], ...rows]);
+  const worksheet = XLSX.utils.aoa_to_sheet(rows);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Customers');
 
-  // Save the workbook
-  XLSX.writeFile(workbook, filePath);
-
-  return res.status(200).json({ message: 'Customer data saved successfully!' });
+  return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 }
+
+app.post('/save-customer', async (req, res) => {
+  try {
+    const { name, phone, country } = req.body;
+
+    if (!name || !phone || !country) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    // Download the current file from S3
+    let existingFile = [];
+    try {
+      const fileBuffer = await downloadFromS3(fileName);
+      const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+      const worksheet = workbook.Sheets['Customers'];
+      existingFile = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    } catch (error) {
+      console.log('File not found in S3, will create a new one.');
+    }
+
+    // Generate new Excel data with the new customer
+    const excelBuffer = generateExcelBuffer([{ name, phone, country }], existingFile);
+
+    // Upload updated file to S3
+    await uploadToS3(excelBuffer, fileName);
+
+    return res.json({ message: 'Customer data saved successfully!' });
+  } catch (error) {
+    console.error('Error saving customer data:', error);
+    return res.status(500).json({ message: 'A server error occurred' });
+  }
+});
